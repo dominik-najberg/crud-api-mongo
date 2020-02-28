@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+/* More information here:
+ * https://developers.google.com/protocol-buffers/docs/proto3 */
+
+package blog;
+option go_package = "blogpb";
+
+message Blog {
+	string id = 1;
+	string author_id = 2;
+	string title = 3;
+	string content = 4;
+}
+
+service BlogService {
+    // Unary API
+//    rpc Example (ExampleRequest) returns (ExampleResponse) {}; // brackets for future options
+
+//    // Server Streaming API
+//    rpc DecomposePrimeNumber (PrimeNumberDecompositionRequest) returns (stream PrimeNumberDecompositionResponse) {};
+//
+//    // Client Streaming API
+//    rpc ComputeAverage (stream ComputeAverageRequest) returns (ComputeAverageResponse) {};
+//
+//    // BiDi Streaming API
+//    rpc FindMaximum (stream FindMaximumRequest) returns (stream FindMaximumResponse) {}
+}
