@@ -1,4 +1,4 @@
-package blog_client
+package main
 
 func main() {
 	
