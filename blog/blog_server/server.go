@@ -1,30 +1,58 @@
 package main
 
 import (
-	"github.com/dominik-najberg/grpc-go-course/greet/greetpb"
+	"context"
+	"github.com/dominik-najberg/crud-course/blog/bootstrap"
+	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 	"log"
 	"net"
+	"os"
+	"os/signal"
 )
 
-func main() {
-	log.Println("server running...")
+var collection *mongo.Collection
 
-	creds, sslErr := credentials.NewServerTLSFromFile("ssl/server.crt", "ssl/server.pem")
-	if sslErr != nil {
-		log.Fatalf("failed while loading certificates: %v", sslErr)
+type server struct{}
+
+func main() {
+	// in case we crash we know the filename and the line number
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
+	log.Println("blog service launched...")
+
+	log.Println("connecting to MongoDB")
+	client, err := bootstrap.NewClient()
+	if err != nil {
+		log.Fatalf("error creating MongoDB connection: %v", err)
 	}
 
-	s := grpc.NewServer(grpc.Creds(creds))
+	collection = client.Database("devdb").Collection("blog")
+
 	lis, err := net.Listen("tcp", "localhost:50051")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	greetpb.RegisterGreetServiceServer(s, &server{})
+	s := grpc.NewServer()
+	//blogpb.RegisterBlogServiceServer(s, &server{})
 
-	if err = s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
-	}
+	go func() {
+		log.Println("starting the server")
+		if err = s.Serve(lis); err != nil {
+			log.Fatalf("failed to serve: %v", err)
+		}
+	}()
+
+	stopChannel := make(chan os.Signal, 1)
+	signal.Notify(stopChannel, os.Interrupt)
+	<-stopChannel
+
+	log.Println("stopping the server")
+	s.Stop()
+	log.Println("closing the listener")
+	_ = lis.Close()
+	log.Println("closing the MongoDB connection")
+	_ = client.Disconnect(context.Background())
+	log.Println("program ended")
 }
