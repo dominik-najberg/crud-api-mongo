@@ -5,6 +5,7 @@ import (
 	"github.com/dominik-najberg/crud-course/blog/blogpb"
 	"github.com/dominik-najberg/crud-course/blog/bootstrap"
 	"github.com/dominik-najberg/crud-course/blog/model"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/grpc"
@@ -20,7 +21,35 @@ var collection *mongo.Collection
 
 type server struct{}
 
+func (s *server) ReadBlog(ctx context.Context, req *blogpb.ReadBlogRequest) (*blogpb.ReadBlogResponse, error) {
+	// 5e5aad36034c2fef6df9fedf
+
+	log.Printf("ReadBlog request: %v", req)
+	blogID := req.GetBlogId()
+	oid, err := primitive.ObjectIDFromHex(blogID)
+	if err != nil {
+		log.Fatalf("blogID conversion error: %v", err)
+	}
+
+	filter := bson.D{{Key: "_id", Value: oid}}
+	blogItem := model.BlogItem{}
+
+	if err := collection.FindOne(ctx, filter).Decode(&blogItem); err != nil {
+		return nil, status.Errorf(codes.NotFound, "not found: %v", err)
+	}
+
+	return &blogpb.ReadBlogResponse{
+		Blog: &blogpb.Blog{
+			Id:       blogItem.ID.Hex(),
+			AuthorId: blogItem.AuthorId,
+			Title:    blogItem.Title,
+			Content:  blogItem.Content,
+		},
+	}, nil
+}
+
 func (s *server) CreateBlog(ctx context.Context, req *blogpb.CreateBlogRequest) (*blogpb.CreateBlogResponse, error) {
+	log.Printf("CreateBlog request: %v", req)
 	blog := req.GetBlog()
 
 	data := model.BlogItem{

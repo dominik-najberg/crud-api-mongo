@@ -1,3 +1,3 @@
 #!/bin/bash
 
-protoc blog/blogpb/blog.proto --go_out=plugins-grpc:.
+protoc --go_out=plugins=grpc:. blog/blogpb/blog.proto
