@@ -2,9 +2,14 @@ package main
 
 import (
 	"context"
+	"github.com/dominik-najberg/crud-course/blog/blogpb"
 	"github.com/dominik-najberg/crud-course/blog/bootstrap"
+	"github.com/dominik-najberg/crud-course/blog/model"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"log"
 	"net"
 	"os"
@@ -14,6 +19,35 @@ import (
 var collection *mongo.Collection
 
 type server struct{}
+
+func (s *server) CreateBlog(ctx context.Context, req *blogpb.CreateBlogRequest) (*blogpb.CreateBlogResponse, error) {
+	blog := req.GetBlog()
+
+	data := model.BlogItem{
+		AuthorId: blog.GetAuthorId(),
+		Content:  blog.GetContent(),
+		Title:    blog.GetTitle(),
+	}
+
+	res, err := collection.InsertOne(ctx, data)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "error while inserting into DB: %v", err)
+	}
+
+	oid, ok := res.InsertedID.(primitive.ObjectID)
+	if !ok {
+		return nil, status.Errorf(codes.Internal, "cannot convert object ID")
+	}
+
+	return &blogpb.CreateBlogResponse{
+		Blog: &blogpb.Blog{
+			Id:       oid.Hex(),
+			AuthorId: blog.GetAuthorId(),
+			Title:    blog.GetTitle(),
+			Content:  blog.GetContent(),
+		},
+	}, nil
+}
 
 func main() {
 	// in case we crash we know the filename and the line number
@@ -35,7 +69,7 @@ func main() {
 	}
 
 	s := grpc.NewServer()
-	//blogpb.RegisterBlogServiceServer(s, &server{})
+	blogpb.RegisterBlogServiceServer(s, &server{})
 
 	go func() {
 		log.Println("starting the server")

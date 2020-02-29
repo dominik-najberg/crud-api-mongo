@@ -1,8 +1,5 @@
 syntax = "proto3";
 
-/* More information here:
- * https://developers.google.com/protocol-buffers/docs/proto3 */
-
 package blog;
 option go_package = "blogpb";
 
@@ -13,16 +10,14 @@ message Blog {
 	string content = 4;
 }
 
-service BlogService {
-    // Unary API
-//    rpc Example (ExampleRequest) returns (ExampleResponse) {}; // brackets for future options
+message CreateBlogRequest {
+	Blog blog = 1;
+}
 
-//    // Server Streaming API
-//    rpc DecomposePrimeNumber (PrimeNumberDecompositionRequest) returns (stream PrimeNumberDecompositionResponse) {};
-//
-//    // Client Streaming API
-//    rpc ComputeAverage (stream ComputeAverageRequest) returns (ComputeAverageResponse) {};
-//
-//    // BiDi Streaming API
-//    rpc FindMaximum (stream FindMaximumRequest) returns (stream FindMaximumResponse) {}
+message CreateBlogResponse {
+	Blog blog = 1; // will contain blogID
+}
+
+service BlogService {
+    rpc CreateBlog (CreateBlogRequest) returns (CreateBlogResponse) {};
 }
