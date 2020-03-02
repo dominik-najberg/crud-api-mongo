@@ -1,5 +1,6 @@
 package main
 
+import "C"
 import (
 	"context"
 	"github.com/dominik-najberg/crud-course/blog/blogpb"
@@ -21,9 +22,39 @@ var collection *mongo.Collection
 
 type server struct{}
 
-func (s *server) ReadBlog(ctx context.Context, req *blogpb.ReadBlogRequest) (*blogpb.ReadBlogResponse, error) {
-	// 5e5aad36034c2fef6df9fedf
+func (s *server) UpdateBlog(ctx context.Context, req *blogpb.UpdateBlogRequest) (*blogpb.UpdateBlogResponse, error) {
+	log.Printf("UpdateBlog request: %v", req)
 
+	blog := req.GetBlog()
+	oid, err := primitive.ObjectIDFromHex(blog.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "blogID conversion error: %v", err)
+	}
+
+	decoded := &model.BlogItem{}
+	filter := bson.D{{Key: "_id", Value: oid}}
+
+	update := bson.D{
+		{Key: "$set", Value: bson.D{{Key: "title", Value: blog.GetTitle()}}},
+		{Key: "$set", Value: bson.D{{Key: "content", Value: blog.GetContent()}}},
+		{Key: "$set", Value: bson.D{{Key: "author_id", Value: blog.GetAuthorId()}}},
+	}
+
+	if err := collection.FindOneAndUpdate(ctx, filter, update).Decode(&decoded); err != nil {
+		return nil, status.Errorf(codes.Internal, "error while replacing data: %v", err)
+	}
+
+	return &blogpb.UpdateBlogResponse{
+		Blog: &blogpb.Blog{
+			Id:       decoded.ID.Hex(),
+			AuthorId: blog.AuthorId,
+			Title:    blog.Title,
+			Content:  blog.Content,
+		},
+	}, nil
+}
+
+func (s *server) ReadBlog(ctx context.Context, req *blogpb.ReadBlogRequest) (*blogpb.ReadBlogResponse, error) {
 	log.Printf("ReadBlog request: %v", req)
 	blogID := req.GetBlogId()
 	oid, err := primitive.ObjectIDFromHex(blogID)

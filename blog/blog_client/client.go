@@ -21,7 +21,7 @@ func main() {
 
 	// CREATE
 	log.Println("creating a blog entry")
-	req := &blogpb.CreateBlogRequest{
+	createReq := &blogpb.CreateBlogRequest{
 		Blog: &blogpb.Blog{
 			AuthorId: "Dominik Najberg",
 			Title:    "This is my first blog entry",
@@ -29,7 +29,7 @@ func main() {
 		},
 	}
 
-	resp, err := c.CreateBlog(context.Background(), req)
+	resp, err := c.CreateBlog(context.Background(), createReq)
 	if err != nil {
 		log.Fatalf("error on Create Blog: %v", err)
 	}
@@ -39,7 +39,7 @@ func main() {
 	// READ
 	log.Printf("reading blog item: %v", resp.Blog.Id)
 	readReq := &blogpb.ReadBlogRequest{
-		BlogId: resp.Blog.Id,
+		BlogId: resp.Blog.GetId(),
 	}
 
 	blogRes, err := c.ReadBlog(context.Background(), readReq)
@@ -48,4 +48,21 @@ func main() {
 	}
 
 	log.Printf("blog item retrieved: %v", blogRes.Blog)
+
+	// UPDATE
+	log.Printf("updating blog item: %v", resp.Blog.Id)
+
+	updateReq := &blogpb.UpdateBlogRequest{
+		Blog: &blogpb.Blog{
+			Id:       resp.Blog.GetId(),
+			AuthorId: createReq.GetBlog().GetAuthorId(),
+			Title:    "(updated) " + createReq.Blog.GetTitle(),
+			Content:  createReq.GetBlog().GetContent(),
+		},
+	}
+	updateRes, err := c.UpdateBlog(context.Background(), updateReq)
+	if err != nil {
+		log.Fatalf("update error: %v", err)
+	}
+	log.Printf("blog item updated: %v", updateRes)
 }
