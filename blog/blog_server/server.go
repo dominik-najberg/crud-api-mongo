@@ -22,6 +22,26 @@ var collection *mongo.Collection
 
 type server struct{}
 
+func (s *server) DeleteBlog(ctx context.Context, req *blogpb.DeleteBlogRequest) (*blogpb.DeleteBlogResponse, error) {
+	log.Printf("UpdateBlog request: %v", req)
+
+	oid, err := primitive.ObjectIDFromHex(req.GetBlogId())
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "blogID conversion error: %v", err)
+	}
+
+	decoded := model.BlogItem{}
+
+	filter := bson.D{{Key: "_id", Value: oid}}
+	if err = collection.FindOneAndDelete(ctx, filter).Decode(&decoded); err != nil {
+		return nil, status.Errorf(codes.Internal, "error while deleting: %v", err)
+	}
+
+	return &blogpb.DeleteBlogResponse{
+		BlogId: decoded.ID.Hex(),
+	}, nil
+}
+
 func (s *server) UpdateBlog(ctx context.Context, req *blogpb.UpdateBlogRequest) (*blogpb.UpdateBlogResponse, error) {
 	log.Printf("UpdateBlog request: %v", req)
 
