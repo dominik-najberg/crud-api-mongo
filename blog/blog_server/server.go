@@ -22,6 +22,41 @@ var collection *mongo.Collection
 
 type server struct{}
 
+func (s *server) ListBlog(req *blogpb.ListBlogRequest, stream blogpb.BlogService_ListBlogServer) error {
+	log.Printf("ListBlog request: %v", req)
+
+	ctx := context.Background()
+
+	cur, err := collection.Find(ctx, bson.D{})
+	if err != nil {
+		return status.Errorf(codes.Internal, "error while retrieving blog items: %v", err)
+	}
+	defer cur.Close(ctx)
+
+	for cur.Next(ctx) {
+		data := &model.BlogItem{}
+		err := cur.Decode(data)
+		if err != nil {
+			return status.Errorf(codes.Internal, "error while iterating blog items %v", err)
+		}
+
+		log.Println("sending data: ", data)
+		err = stream.Send(&blogpb.ListBlogResponse{
+			Blog: &blogpb.Blog{
+				Id:       data.ID.Hex(),
+				AuthorId: data.AuthorId,
+				Title:    data.Title,
+				Content:  data.Content,
+			},
+		})
+		if err != nil {
+			return status.Errorf(codes.Internal, "error while sending blog items %v", err)
+		}
+	}
+
+	return nil
+}
+
 func (s *server) DeleteBlog(ctx context.Context, req *blogpb.DeleteBlogRequest) (*blogpb.DeleteBlogResponse, error) {
 	log.Printf("UpdateBlog request: %v", req)
 

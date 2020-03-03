@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/dominik-najberg/crud-course/blog/blogpb"
 	"google.golang.org/grpc"
+	"io"
 	"log"
 )
 
@@ -65,4 +66,40 @@ func main() {
 		log.Fatalf("update error: %v", err)
 	}
 	log.Printf("blog item updated: %v", updateRes)
+
+	//// DELETE
+	//log.Printf("deleting blog item: %v", resp.Blog.Id)
+	//
+	//deleteReq := &blogpb.DeleteBlogRequest{
+	//	BlogId: resp.Blog.Id,
+	//}
+	//
+	//deleteRes, err := c.DeleteBlog(context.Background(), deleteReq)
+	//if err != nil {
+	//	log.Fatalf("error while deleting item: %v", err)
+	//}
+	//
+	//log.Printf("blog item deleted: %v", deleteRes)
+
+	// LIST
+	log.Println("Listing blog items")
+
+	listReq := &blogpb.ListBlogRequest{}
+	stream, err := c.ListBlog(context.Background(), listReq)
+	if err != nil {
+		log.Fatalf("error on list request: %v", err)
+	}
+
+	for {
+		res, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("error while receiving blog list: %v", err)
+		}
+		log.Printf("blog item: %v", res.Blog)
+	}
+
+	log.Println("list ended")
 }
